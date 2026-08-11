@@ -271,7 +271,7 @@
   }
 
   /* ---------- כרטיס לקוח ---------- */
-  let drawerId = null, drawerTab = 'overview';
+  let drawerId = null, drawerTab = 'activity';
 
   function waPhone(p) {
     let d = String(p || '').replace(/\D/g, '');
@@ -299,11 +299,11 @@
     /* --- מדדים --- */
     const tiles =
       '<div class="tiles">' +
-        tile('היקף עסקי', money(c.value), '') +
-        tile('עסקאות סגורות', wonD.length + ' · ' + moneyShort(wonSum), 'ok') +
-        tile('בצנרת', openD.length + ' · ' + moneyShort(pipeSum), openD.length ? '' : 'muted') +
-        tile('משימות פתוחות', openT.length + (lateT.length ? ' (' + lateT.length + ' באיחור)' : ''), lateT.length ? 'danger' : '') +
+        tile('תיעודים', String(ca.length), ca.length ? 'ok' : 'warn') +
         tile('קשר אחרון', since === 0 ? 'היום' : 'לפני ' + since + ' ימים', since > 60 ? 'danger' : since > 30 ? 'warn' : 'ok') +
+        tile('היקף עסקי', money(c.value), '') +
+        tile('בצנרת', openD.length + ' · ' + moneyShort(pipeSum), '') +
+        tile('משימות פתוחות', openT.length + (lateT.length ? ' (' + lateT.length + ' באיחור)' : ''), lateT.length ? 'danger' : '') +
       '</div>';
 
     /* --- פעולות --- */
@@ -326,9 +326,8 @@
 
       '<div class="act-group">' +
         '<span class="act-label">תיעוד מהיר:</span>' +
-        '<button class="btn ghost sm" data-quicklog="שיחה|' + c.id + '">☎ שיחה יוצאת</button>' +
-        '<button class="btn ghost sm" data-quicklog="פגישה|' + c.id + '">◍ פגישה</button>' +
-        '<button class="btn ghost sm" data-quicklog="מייל|' + c.id + '">✉ נשלח מייל</button>' +
+        LOG_TYPES.map(t => '<button class="btn ghost sm" data-startlog="' + esc(t) + '">' +
+          (ACT_ICONS[t] || '') + ' ' + esc(t) + '</button>').join('') +
         '<button class="btn ghost sm" data-followup="' + c.id + '">⏰ תזכורת למחר</button>' +
       '</div>' +
 
@@ -342,10 +341,10 @@
     /* --- לשוניות --- */
     const tabs =
       '<div class="tabs">' +
+        tabBtn('activity', 'תיעודים', ca.length) +
         tabBtn('overview', 'סקירה', null) +
         tabBtn('deals', 'עסקאות', cd.length) +
         tabBtn('tasks', 'משימות', openT.length) +
-        tabBtn('activity', 'פעילות', ca.length) +
       '</div>';
 
     const paneOverview =
@@ -397,10 +396,8 @@
 
     const paneActivity =
       pane('activity',
-        '<div class="note-box"><input class="input" id="noteInput" placeholder="הוספת הערה או תיעוד שיחה…">' +
-          '<button class="btn primary sm" data-addnote="' + c.id + '">הוספה</button></div>' +
-        '<ul class="timeline" style="margin-top:16px">' +
-          (ca.length ? ca.map(tlItem).join('') : '<li class="muted">אין פעילות מתועדת</li>') + '</ul>');
+        logComposer(c) + logToolbar(c.id) +
+        '<div id="logList">' + logListHtml(c.id) + '</div>');
 
     $('#drawer').innerHTML =
       '<div class="drawer-head">' + avatar(c.name) +
@@ -446,17 +443,33 @@
     document.body.removeChild(ta);
   }
 
+  /* הדפסה דרך iframe מוסתר — לא נחסם על ידי חוסמי חלונות קופצים */
+  function printHtml(title, bodyHtml) {
+    const html =
+      '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>' + esc(title) + '</title>' +
+      '<style>body{font-family:Segoe UI,Arial,sans-serif;padding:32px;color:#141b2d}' +
+      'h1{margin:0 0 4px;font-size:22px}h2{margin:24px 0 8px;font-size:15px;border-bottom:1px solid #ddd;padding-bottom:4px}' +
+      'table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #eee;text-align:right;vertical-align:top}' +
+      'th{background:#f6f7fb}dl{display:grid;grid-template-columns:130px 1fr;gap:6px;font-size:13px}' +
+      'dt{color:#6b7590}dd{margin:0;font-weight:600}.hd{color:#6b7590;font-size:12px}</style></head><body>' +
+      '<div class="hd">' + esc(state.settings.biz) + ' · הופק ' + fdate(dayOffset(0)) + '</div>' +
+      bodyHtml + '</body></html>';
+
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;inset:0;width:0;height:0;border:0;opacity:0';
+    document.body.appendChild(fr);
+    fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
+    setTimeout(() => {
+      fr.contentWindow.focus(); fr.contentWindow.print();
+      setTimeout(() => document.body.removeChild(fr), 1000);
+    }, 250);
+  }
+
   function printCustomer(c) {
     const cd = state.deals.filter(d => d.customerId === c.id);
-    const ca = state.activities.filter(a => a.customerId === c.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
-    const html =
-      '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>כרטיס לקוח — ' + esc(c.name) + '</title>' +
-      '<style>body{font-family:Segoe UI,Arial,sans-serif;padding:32px;color:#141b2d}' +
-      'h1{margin:0 0 4px}h2{margin:24px 0 8px;font-size:15px;border-bottom:1px solid #ddd;padding-bottom:4px}' +
-      'table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #eee;text-align:right}' +
-      'dl{display:grid;grid-template-columns:130px 1fr;gap:6px;font-size:13px}dt{color:#6b7590}dd{margin:0;font-weight:600}' +
-      '.hd{color:#6b7590;font-size:12px}</style></head><body>' +
-      '<div class="hd">' + esc(state.settings.biz) + ' · כרטיס לקוח · הופק ' + fdate(dayOffset(0)) + '</div>' +
+    const ca = state.activities.filter(a => a.customerId === c.id)
+      .sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+    printHtml('כרטיס לקוח — ' + c.name,
       '<h1>' + esc(c.name) + '</h1><div class="hd">' + esc(c.company) + ' · ' + esc(c.status) + '</div>' +
       '<h2>פרטים</h2><dl>' +
         '<dt>טלפון</dt><dd>' + esc(c.phone) + '</dd><dt>אימייל</dt><dd>' + esc(c.email) + '</dd>' +
@@ -468,19 +481,13 @@
       (cd.length ? '<table><tr><th>עסקה</th><th>שלב</th><th>סכום</th><th>סגירה</th></tr>' +
         cd.map(d => '<tr><td>' + esc(d.title) + '</td><td>' + esc(stageById(d.stage).name) + '</td><td>' +
           money(d.value) + '</td><td>' + fdate(d.close) + '</td></tr>').join('') + '</table>' : '<p>—</p>') +
-      '<h2>פעילות אחרונה</h2>' +
-      (ca.length ? '<table>' + ca.map(a => '<tr><td style="width:80px">' + fdate(a.date) + '</td><td style="width:60px">' +
-        esc(a.type) + '</td><td>' + esc(a.text) + '</td></tr>').join('') + '</table>' : '<p>—</p>') +
-      '</body></html>';
-
-    const fr = document.createElement('iframe');
-    fr.style.cssText = 'position:fixed;inset:0;width:0;height:0;border:0;opacity:0';
-    document.body.appendChild(fr);
-    fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
-    setTimeout(() => {
-      fr.contentWindow.focus(); fr.contentWindow.print();
-      setTimeout(() => document.body.removeChild(fr), 1000);
-    }, 250);
+      '<h2>יומן תיעודים (' + ca.length + ')</h2>' +
+      (ca.length ? '<table><tr><th>תאריך</th><th>סוג</th><th>תיעוד</th><th>תוצאה</th><th>נרשם</th></tr>' +
+        ca.map(a => '<tr><td style="width:92px">' + fdate(a.date) + (a.time ? '<br><span class="hd">' + esc(a.time) + '</span>' : '') +
+          '</td><td style="width:70px">' + esc(a.type) + '</td><td>' + esc(a.text) +
+          (a.duration ? ' <span class="hd">(' + durText(a.duration) + ')</span>' : '') +
+          '</td><td style="width:90px">' + esc(a.outcome || '—') + '</td><td style="width:90px">' + esc(a.by) + '</td></tr>').join('') +
+        '</table>' : '<p>—</p>'));
   }
 
   /* ---------- צינור מכירות ---------- */
@@ -531,7 +538,10 @@
     logActivity(deal.customerId, 'עסקה', 'העסקה ״' + deal.title + '״ עברה לשלב ״' + stageById(newStage).name + '״.', deal.owner);
   }
   function logActivity(customerId, type, text, by) {
-    state.activities.unshift({ id: uid('a'), customerId: customerId, type: type, text: text, by: by || state.settings.contact || 'המערכת', date: dayOffset(0) });
+    state.activities.unshift({
+      id: uid('a'), customerId: customerId, type: type, text: text,
+      by: by || state.settings.contact || 'המערכת', date: dayOffset(0), time: nowTime()
+    });
   }
 
   function bindDnD() {
@@ -594,20 +604,189 @@
   }
 
   /* ---------- יומן פעילות ---------- */
-  function tlItem(a) {
+  const ACT_COLORS = { 'שיחה': '#0ea5e9', 'פגישה': '#8b5cf6', 'מייל': '#f59e0b', 'וואטסאפ': '#22c55e', 'הצעת מחיר': '#6366f1', 'עסקה': '#10b981', 'ליד': '#ec4899', 'הערה': '#64748b' };
+  const ACT_ICONS  = { 'שיחה': '☎', 'פגישה': '◍', 'מייל': '✉', 'וואטסאפ': '⌘', 'הצעת מחיר': '₪', 'עסקה': '★', 'ליד': '⚡', 'הערה': '✎' };
+  const OUTCOME_CLS = {
+    'הושלם': 'ok', 'נקבעה פגישה': 'ok', 'נשלח חומר': 'info',
+    'ממתין לתשובה': 'warn', 'לא ענה': 'warn', 'נדחה': 'danger', 'לא רלוונטי': 'mute'
+  };
+
+  function durText(m) {
+    if (!m) return '';
+    if (m < 60) return m + ' דק׳';
+    const h = Math.floor(m / 60), r = m % 60;
+    return h + ' שע׳' + (r ? ' ' + r + ' דק׳' : '');
+  }
+
+  function tlItem(a, showCustomer) {
     const c = customerById(a.customerId);
-    const colors = { 'שיחה': '#0ea5e9', 'פגישה': '#8b5cf6', 'מייל': '#f59e0b', 'עסקה': '#10b981', 'ליד': '#ec4899', 'הערה': '#64748b' };
-    const icons  = { 'שיחה': '☎', 'פגישה': '◍', 'מייל': '✉', 'עסקה': '★', 'ליד': '⚡', 'הערה': '✎' };
-    return '<li><span class="dot" style="background:' + (colors[a.type] || '#64748b') + '">' + (icons[a.type] || '•') + '</span>' +
-      '<div class="tl-head"><strong>' + esc(a.type) + (c ? ' · <span class="link" data-cust="' + c.id + '">' + esc(c.company) + '</span>' : '') + '</strong>' +
-      '<time>' + fdate(a.date) + ' · ' + relative(a.date) + '</time>' +
-      '<span class="tl-actions"><button class="icon-btn" data-editact="' + a.id + '" title="עריכה">✎</button>' +
-      '<button class="icon-btn" data-delact="' + a.id + '" title="מחיקה">✕</button></span></div>' +
-      '<p>' + esc(a.text) + ' <span class="muted">— ' + esc(a.by) + '</span></p></li>';
+    const withCust = showCustomer !== false;
+    const meta =
+      (a.outcome ? '<span class="pill ' + (OUTCOME_CLS[a.outcome] || 'mute') + '">' + esc(a.outcome) + '</span>' : '') +
+      (a.duration ? '<span class="pill mute">⏱ ' + durText(a.duration) + '</span>' : '') +
+      '<span class="pill mute">' + esc(a.by) + '</span>';
+
+    return '<li class="' + (a.pinned ? 'pinned' : '') + '">' +
+      '<span class="dot" style="background:' + (ACT_COLORS[a.type] || '#64748b') + '">' + (ACT_ICONS[a.type] || '•') + '</span>' +
+      '<div class="tl-head"><strong>' + esc(a.type) +
+        (withCust && c ? ' · <span class="link" data-cust="' + c.id + '">' + esc(c.company) + '</span>' : '') + '</strong>' +
+      '<time>' + fdate(a.date) + (a.time ? ' · ' + esc(a.time) : '') + ' · ' + relative(a.date) + '</time>' +
+      '<span class="tl-actions">' +
+        '<button class="icon-btn pin-btn ' + (a.pinned ? 'on' : '') + '" data-pin="' + a.id + '" title="הצמדה לראש הרשימה">📌</button>' +
+        '<button class="icon-btn" data-editact="' + a.id + '" title="עריכה">✎</button>' +
+        '<button class="icon-btn" data-delact="' + a.id + '" title="מחיקה">✕</button></span></div>' +
+      '<p>' + esc(a.text) + '</p>' +
+      '<div class="meta-row">' + meta + '</div></li>';
+  }
+
+  /* ---------- לשונית תיעודים בכרטיס הלקוח ---------- */
+  let logType = 'שיחה', logFilter = '', logQuery = '';
+
+  function nowTime() {
+    const d = new Date(), p = x => String(x).padStart(2, '0');
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function customerLogs(cid) {
+    let list = state.activities.filter(a => a.customerId === cid);
+    if (logFilter) list = list.filter(a => a.type === logFilter);
+    if (logQuery) {
+      const q = logQuery.toLowerCase();
+      list = list.filter(a => (a.text + ' ' + a.by + ' ' + (a.outcome || '')).toLowerCase().includes(q));
+    }
+    return list.sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+  }
+
+  function logComposer(c) {
+    return '<div class="logger">' +
+      '<div class="types">' +
+        LOG_TYPES.map(t => '<button class="type-chip ' + (t === logType ? 'on' : '') + '" data-logtype="' + esc(t) + '">' +
+          (ACT_ICONS[t] || '') + ' ' + esc(t) + '</button>').join('') +
+      '</div>' +
+      '<textarea class="input" id="logText" placeholder="מה קרה? על מה סוכם? מה השלב הבא?"></textarea>' +
+      '<div class="fields">' +
+        '<label>תאריך<input class="input" type="date" id="logDate" value="' + dayOffset(0) + '"></label>' +
+        '<label>שעה<input class="input" type="time" id="logTime" value="' + nowTime() + '"></label>' +
+        '<label>משך (דקות)<input class="input" type="number" min="0" step="5" id="logDur" placeholder="לשיחה או פגישה"></label>' +
+        '<label>תוצאה<select class="input" id="logOutcome"><option value="">— ללא —</option>' + opts(OUTCOMES) + '</select></label>' +
+      '</div>' +
+      '<div class="foot">' +
+        '<button class="btn primary sm" data-savelog="' + c.id + '">שמירת תיעוד</button>' +
+        '<label class="chk"><input type="checkbox" id="logFollow"> קביעת משימת מעקב</label>' +
+        '<input class="input" type="date" id="logFollowDate" value="' + dayOffset(3) + '" style="width:auto;font-size:.84rem;padding:6px 10px">' +
+        '<span class="hint">התיעוד יעדכן אוטומטית את תאריך הקשר האחרון</span>' +
+      '</div></div>';
+  }
+
+  function logToolbar(cid) {
+    const total = state.activities.filter(a => a.customerId === cid).length;
+    const shown = customerLogs(cid).length;
+    return '<div class="log-toolbar">' +
+      '<input class="input" id="logSearch" type="search" placeholder="חיפוש בתיעודים…" value="' + esc(logQuery) + '">' +
+      '<select class="input" id="logTypeFilter"><option value="">כל הסוגים</option>' + opts(ACTIVITY_TYPES, logFilter) + '</select>' +
+      '<button class="btn ghost sm" data-exportlog="' + cid + '">ייצוא CSV</button>' +
+      '<button class="btn ghost sm" data-printlog="' + cid + '">הדפסה</button>' +
+      '<span class="count" id="logToolbarCount">' + (shown === total ? total + ' תיעודים' : 'מוצגים ' + shown + ' מתוך ' + total) + '</span>' +
+      '</div>';
+  }
+
+  /* קיבוץ לפי תקופה */
+  function logListHtml(cid) {
+    const list = customerLogs(cid);
+    if (!list.length) return '<p class="muted" style="padding:18px 0">אין תיעודים התואמים לסינון.</p>';
+
+    const groups = [
+      { key: 'pin',   label: '📌 מוצמדים',        test: a => a.pinned },
+      { key: 'today', label: 'היום',              test: a => daysFrom(a.date) === 0 },
+      { key: 'week',  label: '7 הימים האחרונים',  test: a => daysFrom(a.date) >= -7 },
+      { key: 'month', label: '30 הימים האחרונים', test: a => daysFrom(a.date) >= -30 },
+      { key: 'old',   label: 'קודם לכן',          test: () => true }
+    ];
+    const used = {};
+    let html = '';
+    groups.forEach(g => {
+      const items = list.filter(a => !used[a.id] && g.test(a));
+      if (!items.length) return;
+      items.forEach(a => { used[a.id] = 1; });
+      html += '<div class="tl-group">' + g.label + ' <span class="chip">' + items.length + '</span></div>' +
+        '<ul class="timeline">' + items.map(a => tlItem(a, false)).join('') + '</ul>';
+    });
+    return html;
+  }
+
+  /* מעבר ללשונית התיעודים עם מיקוד בטופס */
+  function openLogTab() {
+    drawerTab = 'activity';
+    $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'activity'));
+    $$('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === 'activity'));
+    $$('.type-chip').forEach(b => b.classList.toggle('on', b.dataset.logtype === logType));
+    const ta = $('#logText');
+    if (ta) { ta.focus(); ta.scrollIntoView({ block: 'nearest' }); }
+  }
+
+  function refreshLogList() {
+    if (!drawerId) return;
+    const box = $('#logList');
+    if (box) box.innerHTML = logListHtml(drawerId);
+    const tb = $('#logToolbarCount');
+    if (tb) {
+      const total = state.activities.filter(a => a.customerId === drawerId).length;
+      const shown = customerLogs(drawerId).length;
+      tb.textContent = shown === total ? total + ' תיעודים' : 'מוצגים ' + shown + ' מתוך ' + total;
+    }
+  }
+
+  function saveLog(cid) {
+    const text = $('#logText').value.trim();
+    if (!text) { toast('נא לכתוב מה קרה באינטראקציה'); $('#logText').focus(); return; }
+    const c = customerById(cid);
+    const date = $('#logDate').value || dayOffset(0);
+    const a = {
+      id: uid('a'), customerId: cid, type: logType, text: text,
+      by: state.settings.contact || ownerNames()[0],
+      date: date, time: $('#logTime').value || '',
+      duration: Number($('#logDur').value) || 0,
+      outcome: $('#logOutcome').value || ''
+    };
+    state.activities.unshift(a);
+    if (date > (c.lastContact || '')) c.lastContact = date;
+
+    let extra = '';
+    if ($('#logFollow').checked) {
+      state.tasks.unshift({
+        id: uid('t'), title: 'מעקב: ' + text.slice(0, 60), customerId: cid, type: logType === 'פגישה' ? 'פגישה' : 'שיחה',
+        priority: 'רגילה', due: $('#logFollowDate').value || dayOffset(3), done: false, owner: c.owner
+      });
+      extra = ' + נקבעה משימת מעקב';
+    }
+    save(); refreshDrawer(); refreshAll();
+    toast('התיעוד נשמר' + extra);
+  }
+
+  function exportLog(cid) {
+    const c = customerById(cid);
+    const rows = customerLogs(cid).map(a => [a.date, a.time || '', a.type, a.text, a.outcome || '', a.duration || '', a.by]);
+    downloadFile('log-' + (c.company || 'customer') + '.csv',
+      toCsv([['תאריך', 'שעה', 'סוג', 'תיעוד', 'תוצאה', 'משך (דק׳)', 'נרשם על ידי']].concat(rows)),
+      'text/csv;charset=utf-8');
+    toast('יוצאו ' + rows.length + ' תיעודים');
+  }
+
+  function printLog(cid) {
+    const c = customerById(cid);
+    const list = customerLogs(cid);
+    printHtml('יומן תיעודים — ' + c.name,
+      '<h1>יומן תיעודים</h1><div class="hd">' + esc(c.name) + ' · ' + esc(c.company) + ' · ' + list.length + ' רשומות</div>' +
+      (list.length ? '<table><tr><th>תאריך</th><th>סוג</th><th>תיעוד</th><th>תוצאה</th><th>נרשם</th></tr>' +
+        list.map(a => '<tr><td style="width:92px">' + fdate(a.date) + (a.time ? '<br><span class="hd">' + esc(a.time) + '</span>' : '') +
+          '</td><td style="width:70px">' + esc(a.type) + '</td><td>' + esc(a.text) +
+          (a.duration ? ' <span class="hd">(' + durText(a.duration) + ')</span>' : '') +
+          '</td><td style="width:90px">' + esc(a.outcome || '—') + '</td><td style="width:90px">' + esc(a.by) + '</td></tr>').join('') +
+        '</table>' : '<p>אין תיעודים.</p>'));
   }
   function renderTimeline() {
     const ty = $('#actType').value, cu = $('#actCustomer').value, rg = Number($('#actRange').value || 0);
-    let list = state.activities.slice().sort((a, b) => b.date.localeCompare(a.date));
+    let list = state.activities.slice().sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
     if (ty) list = list.filter(a => a.type === ty);
     if (cu) list = list.filter(a => a.customerId === cu);
     if (rg) list = list.filter(a => daysFrom(a.date) >= -rg);
@@ -891,7 +1070,10 @@
       '<label>לקוח<select class="input" id="f_acust">' + custOpts(a.customerId) + '</select></label>' +
       '<label>סוג פעילות<select class="input" id="f_atype">' + opts(ACTIVITY_TYPES, a.type) + '</select></label>' +
       '<label>תאריך<input class="input" id="f_adate" type="date" value="' + (a.date || dayOffset(0)) + '"></label>' +
-      '<label>בוצע על ידי<select class="input" id="f_aby">' + opts(ownerNames(), a.by) + '</select></label>' +
+      '<label>שעה<input class="input" id="f_atime" type="time" value="' + esc(a.time || nowTime()) + '"></label>' +
+      '<label>משך (דקות)<input class="input" id="f_adur" type="number" min="0" step="5" value="' + (a.duration || '') + '"></label>' +
+      '<label>תוצאה<select class="input" id="f_aout"><option value="">— ללא —</option>' + opts(OUTCOMES, a.outcome) + '</select></label>' +
+      '<label class="full">בוצע על ידי<select class="input" id="f_aby">' + opts(ownerNames(), a.by) + '</select></label>' +
       '<label class="full">תיאור<textarea class="input" id="f_atext" rows="3" placeholder="מה קרה בשיחה / בפגישה?">' + esc(a.text || '') + '</textarea></label>' +
       '</div>';
   }
@@ -901,7 +1083,9 @@
     if (!$('#f_acust').value) { toast('נא ליצור לקוח קודם'); return false; }
     const data = {
       customerId: $('#f_acust').value, type: $('#f_atype').value,
-      date: $('#f_adate').value, by: $('#f_aby').value, text: text
+      date: $('#f_adate').value, by: $('#f_aby').value, text: text,
+      time: $('#f_atime').value || '', duration: Number($('#f_adur').value) || 0,
+      outcome: $('#f_aout').value || ''
     };
     if (existing) { Object.assign(existing, data); toast('הפעילות עודכנה'); }
     else {
@@ -1153,16 +1337,33 @@
       save(); refreshDrawer(); renderCustomers();
       return toast(i > -1 ? 'הוסר סימון VIP' : 'הלקוח סומן כ־VIP');
     }
-    const ql = closest('[data-quicklog]');
-    if (ql) {
-      const parts = ql.dataset.quicklog.split('|');
-      const type = parts[0], c = customerById(parts[1]);
-      const texts = { 'שיחה': 'שיחה יוצאת ללקוח.', 'פגישה': 'התקיימה פגישה עם הלקוח.', 'מייל': 'נשלח מייל ללקוח.' };
-      logActivity(c.id, type, texts[type] || type, state.settings.contact);
-      c.lastContact = dayOffset(0);
-      save(); refreshDrawer(); refreshAll();
-      return toast('תועד: ' + type);
+    /* --- תיעודים --- */
+    const sl = closest('[data-startlog]');
+    if (sl) {
+      logType = sl.dataset.startlog;
+      openLogTab();
+      return;
     }
+    const lt = closest('[data-logtype]');
+    if (lt) {
+      logType = lt.dataset.logtype;
+      $$('.type-chip').forEach(b => b.classList.toggle('on', b === lt));
+      $('#logText').focus();
+      return;
+    }
+    const svl = closest('[data-savelog]');
+    if (svl) return saveLog(svl.dataset.savelog);
+    const pin = closest('[data-pin]');
+    if (pin) {
+      const a = state.activities.find(x => x.id === pin.dataset.pin);
+      a.pinned = !a.pinned;
+      save(); refreshLogList(); if (currentView() === 'activity') renderTimeline();
+      return toast(a.pinned ? 'התיעוד הוצמד לראש הרשימה' : 'ההצמדה בוטלה');
+    }
+    const xl = closest('[data-exportlog]');
+    if (xl) return exportLog(xl.dataset.exportlog);
+    const pl = closest('[data-printlog]');
+    if (pl) return printLog(pl.dataset.printlog);
     const fu = closest('[data-followup]');
     if (fu) {
       const c = customerById(fu.dataset.followup);
@@ -1214,17 +1415,6 @@
       c.tags = (c.tags || []).filter(x => x !== parts[0]);
       save(); refreshDrawer(); renderCustomers();
       return toast('התגית הוסרה');
-    }
-
-    const an = closest('[data-addnote]');
-    if (an) {
-      const val = $('#noteInput').value.trim();
-      if (!val) return;
-      const c = customerById(an.dataset.addnote);
-      logActivity(c.id, 'הערה', val, state.settings.contact);
-      c.lastContact = dayOffset(0);
-      save(); refreshDrawer(); refreshAll();
-      return toast('ההערה נוספה');
     }
 
     /* --- צוות --- */
@@ -1363,6 +1553,9 @@
     document.addEventListener(evt, e => {
       const fn = RERENDER[e.target.id];
       if (fn) fn();
+      /* סינון וחיפוש בתוך לשונית התיעודים — מרעננים רק את הרשימה כדי לא לאבד מיקוד */
+      if (e.target.id === 'logSearch') { logQuery = e.target.value.trim(); refreshLogList(); }
+      if (e.target.id === 'logTypeFilter') { logFilter = e.target.value; refreshLogList(); }
     });
   });
 

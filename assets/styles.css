@@ -415,6 +415,48 @@ select.input{cursor:pointer}
 }
 .tag-add:hover{border-color:var(--brand);color:var(--brand)}
 
+/* ===== תיעודים ===== */
+.logger{
+  background:var(--surface-2);border:1px solid var(--border);
+  border-radius:14px;padding:14px 15px;margin-bottom:6px;
+}
+.logger .types{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.type-chip{
+  border:1px solid var(--border);background:var(--surface);color:var(--muted);
+  border-radius:999px;padding:5px 13px;font-size:.82rem;font-weight:700;cursor:pointer;transition:.15s;
+}
+.type-chip:hover{border-color:var(--brand);color:var(--brand)}
+.type-chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.logger textarea{width:100%;min-height:74px;background:var(--surface)}
+.logger .fields{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:11px}
+.logger .fields label{display:flex;flex-direction:column;gap:4px;font-size:.73rem;font-weight:700;color:var(--muted)}
+.logger .fields .input{font-size:.85rem;padding:6px 10px;background:var(--surface)}
+.logger .foot{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:6px;font-size:.83rem;font-weight:600;color:var(--muted);cursor:pointer;user-select:none}
+.chk input{width:15px;height:15px;accent-color:var(--brand);cursor:pointer}
+.logger .hint{font-size:.75rem;color:var(--muted);margin-inline-start:auto}
+
+.log-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0 4px}
+.log-toolbar .input{width:auto;min-width:130px;font-size:.85rem;padding:6px 10px}
+.log-toolbar #logSearch{flex:1;min-width:170px}
+.log-toolbar .count{margin-inline-start:0}
+
+.tl-group{
+  display:flex;align-items:center;gap:10px;
+  font-size:.73rem;font-weight:800;color:var(--muted);margin:18px 0 10px;
+}
+.tl-group::after{content:"";flex:1;height:1px;background:var(--border)}
+.timeline li.pinned{
+  background:var(--warn-soft);border-radius:10px;
+  padding:8px 8px 12px 8px;margin-bottom:8px;
+}
+.timeline li.pinned::before{top:30px}
+.timeline li.pinned .dot{top:11px;right:8px}
+.meta-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:5px}
+.meta-row .pill{font-size:.71rem;padding:2px 8px}
+.pin-btn{color:var(--muted)}
+.pin-btn.on{color:var(--warn);opacity:1 !important}
+
 /* פריטי רשימה בכרטיס */
 .rec{
   display:flex;align-items:center;gap:10px;padding:11px 13px;
@@ -505,6 +547,7 @@ textarea.input{resize:vertical;min-height:70px}
   .tiles{grid-template-columns:repeat(2,1fr)}
   .tabs button{padding:9px 9px;font-size:.83rem}
   .tabs .n{margin-inline-start:3px;padding:1px 5px}
+  .logger .fields{grid-template-columns:repeat(2,1fr)}
   .drawer-body{padding:16px 16px 50px}
   .drawer-head{padding:18px 16px 14px}
   .kv{grid-template-columns:96px 1fr}
