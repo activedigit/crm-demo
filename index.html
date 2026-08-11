@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ActiveCRM — מערכת ניהול לקוחות</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== Sidebar ===== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div class="brand-text">
+        <strong>ActiveCRM</strong>
+        <span id="brandBiz">ניהול לקוחות</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-view="dashboard"><span class="ic">▦</span>לוח בקרה</button>
+      <button class="nav-item" data-view="customers"><span class="ic">☺</span>לקוחות<em class="badge" id="navCustomers">0</em></button>
+      <button class="nav-item" data-view="pipeline"><span class="ic">⇄</span>צינור מכירות</button>
+      <button class="nav-item" data-view="tasks"><span class="ic">✓</span>משימות<em class="badge alert" id="navTasks">0</em></button>
+      <button class="nav-item" data-view="activity"><span class="ic">◷</span>יומן פעילות</button>
+      <button class="nav-item" data-view="reports"><span class="ic">◔</span>דוחות</button>
+      <button class="nav-item" data-view="settings"><span class="ic">⚙</span>הגדרות</button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="user-chip" id="userChip">
+        <div class="avatar" style="--c:#6366f1">ד</div>
+        <div>
+          <strong>דנה אברמוב</strong>
+          <span>מנהלת מכירות</span>
+        </div>
+      </div>
+      <p class="demo-note">גרסת הדגמה — הנתונים לדוגמה בלבד</p>
+    </div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn only-mobile" id="menuBtn">☰</button>
+      <div class="search-wrap">
+        <span class="search-ic">⌕</span>
+        <input type="search" id="globalSearch" placeholder="חיפוש לקוח, חברה, עסקה או משימה…" autocomplete="off">
+        <div class="search-results" id="searchResults" hidden></div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn ghost" id="themeBtn" title="מצב כהה/בהיר">◐</button>
+        <button class="btn primary" id="quickAdd">+ לקוח חדש</button>
+      </div>
+    </header>
+
+    <div class="views" id="views">
+
+      <!-- ===== Dashboard ===== -->
+      <section class="view active" data-view="dashboard">
+        <div class="page-head">
+          <div>
+            <h1>לוח בקרה</h1>
+            <p class="muted">סקירה כללית של הפעילות העסקית · <span id="todayLabel"></span></p>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="kpiGrid"></div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <h2>הכנסות לפי חודש</h2>
+              <span class="chip">12 חודשים אחרונים</span>
+            </div>
+            <div class="chart" id="revenueChart"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>פילוח לפי מקור ליד</h2></div>
+            <div class="donut-wrap">
+              <svg class="donut" viewBox="0 0 42 42" id="sourceDonut"></svg>
+              <ul class="legend" id="sourceLegend"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <h2>עסקאות פתוחות מובילות</h2>
+              <button class="link" data-goto="pipeline">לצינור המכירות ←</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table compact" id="topDeals"></table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>משימות להיום ולשבוע</h2>
+              <button class="link" data-goto="tasks">כל המשימות ←</button>
+            </div>
+            <ul class="task-list mini" id="dashTasks"></ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Customers ===== -->
+      <section class="view" data-view="customers">
+        <div class="page-head">
+          <div>
+            <h1>לקוחות</h1>
+            <p class="muted">ניהול כרטיסי לקוח, אנשי קשר והיסטוריית התקשרות</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn ghost" id="importCsv">ייבוא CSV</button>
+            <button class="btn ghost" id="exportCsv">ייצוא CSV</button>
+            <button class="btn primary" id="addCustomer">+ לקוח חדש</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input type="search" id="custSearch" class="input" placeholder="חיפוש לפי שם, חברה, אימייל או עיר…">
+          <select class="input" id="filterStatus">
+            <option value="">כל הסטטוסים</option>
+            <option>לקוח פעיל</option>
+            <option>לקוח פוטנציאלי</option>
+            <option>בטיפול</option>
+            <option>לא פעיל</option>
+          </select>
+          <select class="input" id="filterOwner"><option value="">כל אנשי המכירות</option></select>
+          <select class="input" id="sortBy">
+            <option value="name">מיון: שם</option>
+            <option value="value">מיון: היקף עסקי</option>
+            <option value="lastContact">מיון: קשר אחרון</option>
+            <option value="created">מיון: תאריך פתיחה</option>
+          </select>
+          <span class="count" id="custCount"></span>
+        </div>
+
+        <div class="card no-pad">
+          <div class="table-wrap">
+            <table class="table" id="customersTable"></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Pipeline ===== -->
+      <section class="view" data-view="pipeline">
+        <div class="page-head">
+          <div>
+            <h1>צינור מכירות</h1>
+            <p class="muted">גררו כרטיס בין העמודות כדי לעדכן שלב · לחיצה על כרטיס פותחת עריכה · <span id="pipeSummary"></span></p>
+          </div>
+          <div class="head-actions">
+            <select class="input" id="pipeOwner"><option value="">כל אנשי המכירות</option></select>
+            <button class="btn primary" id="addDeal">+ עסקה חדשה</button>
+          </div>
+        </div>
+        <div class="board" id="board"></div>
+      </section>
+
+      <!-- ===== Tasks ===== -->
+      <section class="view" data-view="tasks">
+        <div class="page-head">
+          <div>
+            <h1>משימות</h1>
+            <p class="muted">מעקב אחר שיחות, פגישות והצעות מחיר</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn primary" id="addTask">+ משימה חדשה</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="segmented" id="taskFilter">
+            <button class="active" data-f="open">פתוחות</button>
+            <button data-f="today">להיום</button>
+            <button data-f="late">באיחור</button>
+            <button data-f="done">הושלמו</button>
+            <button data-f="all">הכול</button>
+          </div>
+          <select class="input" id="taskOwner"><option value="">כל אנשי המכירות</option></select>
+          <span class="count" id="taskCount"></span>
+        </div>
+
+        <div class="card">
+          <ul class="task-list" id="taskList"></ul>
+        </div>
+      </section>
+
+      <!-- ===== Activity ===== -->
+      <section class="view" data-view="activity">
+        <div class="page-head">
+          <div>
+            <h1>יומן פעילות</h1>
+            <p class="muted">כל האינטראקציות מול הלקוחות, לפי סדר כרונולוגי</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn primary" id="addActivity">+ תיעוד פעילות</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <select class="input" id="actType"><option value="">כל סוגי הפעילות</option></select>
+          <select class="input" id="actCustomer"><option value="">כל הלקוחות</option></select>
+          <select class="input" id="actRange">
+            <option value="0">כל התקופות</option>
+            <option value="7">7 ימים אחרונים</option>
+            <option value="30">30 ימים אחרונים</option>
+            <option value="90">90 ימים אחרונים</option>
+          </select>
+          <span class="count" id="actCount"></span>
+        </div>
+        <div class="card">
+          <ul class="timeline" id="timeline"></ul>
+        </div>
+      </section>
+
+      <!-- ===== Reports ===== -->
+      <section class="view" data-view="reports">
+        <div class="page-head">
+          <div>
+            <h1>דוחות</h1>
+            <p class="muted">ביצועי מכירות, המרות ופילוח לקוחות</p>
+          </div>
+          <div class="head-actions">
+            <button class="btn ghost" id="printReport">הדפסה / PDF</button>
+            <button class="btn ghost" id="exportReport">ייצוא דוח CSV</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="reportKpis"></div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h2>ביצועי אנשי מכירות</h2></div>
+            <div class="table-wrap"><table class="table compact" id="ownerTable"></table></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>משפך המרה</h2></div>
+            <div class="funnel" id="funnel"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>לקוחות מובילים לפי היקף עסקי</h2></div>
+          <div class="bars" id="topCustomers"></div>
+        </div>
+      </section>
+
+      <!-- ===== Settings ===== -->
+      <section class="view" data-view="settings">
+        <div class="page-head">
+          <div>
+            <h1>הגדרות</h1>
+            <p class="muted">התאמה אישית של מערכת ההדגמה</p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h2>פרטי העסק</h2></div>
+            <div class="form-grid">
+              <label>שם העסק<input class="input" id="setBiz" value="אקטיב דיגיט בע״מ"></label>
+              <label>מטבע
+                <select class="input" id="setCurrency">
+                  <option value="₪">שקל ₪</option>
+                  <option value="$">דולר $</option>
+                  <option value="€">אירו €</option>
+                </select>
+              </label>
+              <label>איש קשר ראשי<input class="input" id="setContact" value="דנה אברמוב"></label>
+              <label>אימייל<input class="input" id="setEmail" value="sales@example.co.il"></label>
+            </div>
+            <button class="btn primary" id="saveSettings">שמירה</button>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>נתוני הדגמה וגיבוי</h2></div>
+            <p class="muted small">כל השינויים נשמרים מקומית בדפדפן (localStorage). ניתן לאפס בכל רגע לנתוני הדוגמה המקוריים — שימושי לפני הדגמה מול לקוח.</p>
+            <div class="row-btns">
+              <button class="btn ghost" id="backupExport">ייצוא גיבוי מלא</button>
+              <button class="btn ghost" id="backupImport">שחזור מגיבוי</button>
+              <button class="btn ghost" id="resetDemo">איפוס לנתוני דוגמה</button>
+              <button class="btn danger" id="clearAll">מחיקת כל הנתונים</button>
+            </div>
+            <div class="stat-lines" id="storageStats"></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head">
+              <h2>ניהול צוות המכירות</h2>
+              <button class="link" id="addOwner">+ הוספת נציג</button>
+            </div>
+            <ul class="mini-list" id="ownerList"></ul>
+            <p class="muted small">מחיקת נציג תעביר את הלקוחות, העסקאות והמשימות שלו לנציג הראשון ברשימה.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h2>נתוני הכנסות (12 חודשים)</h2></div>
+            <p class="muted small">ערכי גרף ההכנסות בלוח הבקרה — מהחודש הישן ביותר לחדש ביותר, מופרדים בפסיק.</p>
+            <textarea class="input" id="revInput" rows="3" style="margin:10px 0;font-family:monospace;direction:ltr;text-align:left"></textarea>
+            <button class="btn primary" id="saveRevenue">עדכון הגרף</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- ===== Drawer: customer details ===== -->
+<div class="overlay" id="overlay" hidden></div>
+<aside class="drawer" id="drawer" hidden></aside>
+
+<!-- ===== Modal ===== -->
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<input type="file" id="filePicker" accept=".csv,.json" hidden>
+
+<script src="assets/data.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

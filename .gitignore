@@ -1,0 +1,12 @@
+# מערכת הפעלה
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# עורכים
+.vscode/
+.idea/
+*.swp
+
+# תלויות (למקרה שיתווספו בהמשך)
+node_modules/
