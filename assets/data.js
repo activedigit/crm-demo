@@ -23,11 +23,14 @@ const ACTIVITY_TYPES = ['שיחה', 'פגישה', 'מייל', 'עסקה', 'לי�
 const SOURCES = ['אתר אינטרנט', 'המלצה מלקוח', 'גוגל', 'פייסבוק ואינסטגרם', 'לינקדאין', 'תערוכה', 'שיחה יזומה'];
 
 /* ---- עזרי תאריכים ---- */
+/* מחזיר YYYY-MM-DD לפי השעון המקומי.
+   לא משתמשים ב-toISOString: הוא ממיר ל-UTC ובאזור זמן ישראל מחזיר את היום הקודם. */
 function dayOffset(n) {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
+  d.setHours(12, 0, 0, 0);
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  const p = x => String(x).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
 }
 
 function buildDemoData() {

@@ -270,71 +270,218 @@
       '<tbody>' + (rows || '<tr><td colspan="8" class="empty"><span class="big">⌕</span>לא נמצאו לקוחות התואמים לסינון</td></tr>') + '</tbody>';
   }
 
-  /* ---------- מגירת לקוח ---------- */
-  let drawerId = null;
+  /* ---------- כרטיס לקוח ---------- */
+  let drawerId = null, drawerTab = 'overview';
+
+  function waPhone(p) {
+    let d = String(p || '').replace(/\D/g, '');
+    if (d.charAt(0) === '0') d = '972' + d.slice(1);
+    return d;
+  }
+
   function openCustomer(id) {
     const c = customerById(id);
     if (!c) return;
     drawerId = id;
+
     const cd = state.deals.filter(d => d.customerId === id);
-    const ct = state.tasks.filter(t => t.customerId === id && !t.done);
+    const openD = cd.filter(d => CLOSED.indexOf(d.stage) < 0);
+    const allT = state.tasks.filter(t => t.customerId === id);
+    const openT = allT.filter(t => !t.done);
+    const lateT = openT.filter(t => daysFrom(t.due) < 0);
     const ca = state.activities.filter(a => a.customerId === id).sort((a, b) => b.date.localeCompare(a.date));
-    const wonSum = cd.filter(d => d.stage === 'won').reduce((s, d) => s + d.value, 0);
+    const wonD = cd.filter(d => d.stage === 'won');
+    const wonSum = wonD.reduce((s, d) => s + d.value, 0);
+    const pipeSum = openD.reduce((s, d) => s + d.value, 0);
+    const since = Math.abs(daysFrom(c.lastContact));
+    const isVip = (c.tags || []).indexOf('VIP') > -1;
 
-    $('#drawer').innerHTML =
-      '<div class="drawer-head">' + avatar(c.name) +
-        '<div><h2>' + esc(c.name) + '</h2><p class="muted">' + esc(c.company) + '</p>' +
-        '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + statusPill(c.status) +
-        (c.tags || []).map(t => '<span class="pill brand">' + esc(t) + '</span>').join('') + '</div></div>' +
-        '<button class="icon-btn close" data-close>✕</button></div>' +
+    /* --- מדדים --- */
+    const tiles =
+      '<div class="tiles">' +
+        tile('היקף עסקי', money(c.value), '') +
+        tile('עסקאות סגורות', wonD.length + ' · ' + moneyShort(wonSum), 'ok') +
+        tile('בצנרת', openD.length + ' · ' + moneyShort(pipeSum), openD.length ? '' : 'muted') +
+        tile('משימות פתוחות', openT.length + (lateT.length ? ' (' + lateT.length + ' באיחור)' : ''), lateT.length ? 'danger' : '') +
+        tile('קשר אחרון', since === 0 ? 'היום' : 'לפני ' + since + ' ימים', since > 60 ? 'danger' : since > 30 ? 'warn' : 'ok') +
+      '</div>';
 
-      '<div class="drawer-body">' +
-        '<div class="drawer-actions">' +
-          '<button class="btn primary sm" data-edit="' + c.id + '">עריכת כרטיס</button>' +
-          '<button class="btn ghost sm" data-newdeal="' + c.id + '">+ עסקה</button>' +
-          '<button class="btn ghost sm" data-newtask="' + c.id + '">+ משימה</button>' +
-          (c.phone ? '<a class="btn ghost sm" href="tel:' + esc(c.phone) + '">☎ חיוג</a>' : '') +
-          (c.email ? '<a class="btn ghost sm" href="mailto:' + esc(c.email) + '">✉ מייל</a>' : '') +
-          '<button class="btn danger sm" data-del="' + c.id + '">מחיקה</button>' +
-        '</div>' +
+    /* --- פעולות --- */
+    const actions =
+      '<div class="act-group">' +
+        '<button class="btn primary sm" data-edit="' + c.id + '">✎ עריכת כרטיס</button>' +
+        '<button class="btn ghost sm" data-newdeal="' + c.id + '">+ עסקה</button>' +
+        '<button class="btn ghost sm" data-newtask="' + c.id + '">+ משימה</button>' +
+        '<button class="btn ghost sm" data-newact="' + c.id + '">+ תיעוד פעילות</button>' +
+        '<span class="sep"></span>' +
+        (c.phone ? '<a class="btn ghost sm" href="tel:' + esc(c.phone) + '">☎ חיוג</a>' : '') +
+        (c.phone ? '<a class="btn ghost sm" href="https://wa.me/' + waPhone(c.phone) + '" target="_blank" rel="noopener">וואטסאפ</a>' : '') +
+        (c.email ? '<a class="btn ghost sm" href="mailto:' + esc(c.email) + '">✉ מייל</a>' : '') +
+        '<button class="btn ghost sm" data-copy="' + c.id + '">⧉ העתקת פרטים</button>' +
+        '<span class="sep"></span>' +
+        '<button class="btn ghost sm" data-dup="' + c.id + '">שכפול</button>' +
+        '<button class="btn ghost sm" data-printcust="' + c.id + '">הדפסת כרטיס</button>' +
+        '<button class="btn danger sm" data-del="' + c.id + '">מחיקה</button>' +
+      '</div>' +
 
-        '<div class="sec-title">פרטי קשר</div>' +
+      '<div class="act-group">' +
+        '<span class="act-label">תיעוד מהיר:</span>' +
+        '<button class="btn ghost sm" data-quicklog="שיחה|' + c.id + '">☎ שיחה יוצאת</button>' +
+        '<button class="btn ghost sm" data-quicklog="פגישה|' + c.id + '">◍ פגישה</button>' +
+        '<button class="btn ghost sm" data-quicklog="מייל|' + c.id + '">✉ נשלח מייל</button>' +
+        '<button class="btn ghost sm" data-followup="' + c.id + '">⏰ תזכורת למחר</button>' +
+      '</div>' +
+
+      '<div class="quick-selects">' +
+        '<label>סטטוס<select class="input" data-qstatus="' + c.id + '">' +
+          opts(['לקוח פוטנציאלי', 'בטיפול', 'לקוח פעיל', 'לא פעיל'], c.status) + '</select></label>' +
+        '<label>אחראי<select class="input" data-qowner="' + c.id + '">' + opts(ownerNames(), c.owner) + '</select></label>' +
+        '<label>מקור הליד<select class="input" data-qsource="' + c.id + '">' + opts(SOURCES, c.source) + '</select></label>' +
+      '</div>';
+
+    /* --- לשוניות --- */
+    const tabs =
+      '<div class="tabs">' +
+        tabBtn('overview', 'סקירה', null) +
+        tabBtn('deals', 'עסקאות', cd.length) +
+        tabBtn('tasks', 'משימות', openT.length) +
+        tabBtn('activity', 'פעילות', ca.length) +
+      '</div>';
+
+    const paneOverview =
+      pane('overview',
         '<dl class="kv">' +
-          '<dt>טלפון</dt><dd>' + esc(c.phone) + '</dd>' +
-          '<dt>אימייל</dt><dd>' + esc(c.email) + '</dd>' +
-          '<dt>עיר</dt><dd>' + esc(c.city) + '</dd>' +
+          '<dt>איש קשר</dt><dd>' + esc(c.name) + '</dd>' +
+          '<dt>חברה</dt><dd>' + esc(c.company) + '</dd>' +
+          '<dt>טלפון</dt><dd>' + esc(c.phone || '—') + '</dd>' +
+          '<dt>אימייל</dt><dd>' + esc(c.email || '—') + '</dd>' +
+          '<dt>עיר</dt><dd>' + esc(c.city || '—') + '</dd>' +
           '<dt>תחום</dt><dd>' + esc(c.industry) + '</dd>' +
           '<dt>מקור הליד</dt><dd>' + esc(c.source) + '</dd>' +
           '<dt>אחראי</dt><dd>' + esc(c.owner) + '</dd>' +
           '<dt>היקף עסקי</dt><dd>' + money(c.value) + (wonSum ? ' <span class="muted small">(מזה ' + money(wonSum) + ' מעסקאות סגורות)</span>' : '') + '</dd>' +
-          '<dt>לקוח מאז</dt><dd>' + fdate(c.created) + '</dd>' +
+          '<dt>לקוח מאז</dt><dd>' + fdate(c.created) + ' <span class="muted small">(' + Math.abs(daysFrom(c.created)) + ' ימים)</span></dd>' +
           '<dt>קשר אחרון</dt><dd>' + fdate(c.lastContact) + ' <span class="muted small">(' + relative(c.lastContact) + ')</span></dd>' +
         '</dl>' +
+        '<div class="sec-title">תגיות</div>' +
+        '<div class="tag-edit">' +
+          (c.tags || []).map(t => '<span class="pill brand">' + esc(t) +
+            '<span class="x" data-deltag="' + esc(t) + '|' + c.id + '" title="הסרה">✕</span></span>').join('') +
+          '<button class="tag-add" data-addtag="' + c.id + '">+ תגית</button>' +
+        '</div>');
 
-        '<div class="sec-title">עסקאות (' + cd.length + ') — לחיצה לעריכה</div>' +
-        '<ul class="mini-list">' + (cd.length ? cd.map(d => {
+    const paneDeals =
+      pane('deals',
+        '<div class="act-group"><button class="btn primary sm" data-newdeal="' + c.id + '">+ עסקה חדשה</button></div>' +
+        (cd.length ? cd.map(d => {
           const st = stageById(d.stage);
-          return '<li data-deal="' + d.id + '" style="cursor:pointer"><span class="stage-dot" style="background:' + st.color + '"></span>' +
-            esc(d.title) + '<span class="pill mute">' + esc(st.name) + '</span><span class="num">' + money(d.value) + '</span></li>';
-        }).join('') : '<li class="muted">אין עסקאות רשומות</li>') + '</ul>' +
+          return '<div class="rec" data-deal="' + d.id + '">' +
+            '<span class="stage-dot" style="background:' + st.color + '"></span>' +
+            '<div class="main"><strong>' + esc(d.title) + '</strong>' +
+            '<small>' + esc(st.name) + ' · סגירה צפויה ' + fdate(d.close) + ' · ' + esc(d.owner) + '</small></div>' +
+            '<span class="num">' + money(d.value) + '</span></div>';
+        }).join('') : '<p class="muted">אין עסקאות רשומות ללקוח זה.</p>'));
 
-        '<div class="sec-title">משימות פתוחות (' + ct.length + ')</div>' +
-        '<ul class="mini-list">' + (ct.length
-          ? ct.map(t => '<li data-edittask="' + t.id + '" style="cursor:pointer">' + esc(t.title) +
-              '<span class="pill ' + (daysFrom(t.due) < 0 ? 'danger' : 'mute') + '">' + relative(t.due) + '</span></li>').join('')
-          : '<li class="muted">אין משימות פתוחות</li>') + '</ul>' +
+    const paneTasks =
+      pane('tasks',
+        '<div class="act-group"><button class="btn primary sm" data-newtask="' + c.id + '">+ משימה חדשה</button></div>' +
+        (allT.length ? allT.slice().sort((a, b) => (a.done - b.done) || (a.due || '').localeCompare(b.due || '')).map(t =>
+          '<div class="rec"' + (t.done ? ' style="opacity:.6"' : '') + '>' +
+            '<button class="cb" data-toggle="' + t.id + '" style="' + (t.done ? 'background:var(--ok);border-color:var(--ok);color:#fff' : '') + '">✓</button>' +
+            '<div class="main" data-edittask="' + t.id + '"><strong>' + esc(t.title) + '</strong>' +
+            '<small>' + esc(t.type) + ' · ' + esc(t.priority) + ' · ' + fdate(t.due) + ' · ' + esc(t.owner) + '</small></div>' +
+            '<span class="pill ' + (t.done ? 'ok' : daysFrom(t.due) < 0 ? 'danger' : 'mute') + '">' +
+              (t.done ? 'הושלמה' : relative(t.due)) + '</span>' +
+            '<button class="icon-btn" data-deltask="' + t.id + '">✕</button></div>').join('')
+          : '<p class="muted">אין משימות ללקוח זה.</p>'));
 
-        '<div class="sec-title">היסטוריית פעילות</div>' +
+    const paneActivity =
+      pane('activity',
         '<div class="note-box"><input class="input" id="noteInput" placeholder="הוספת הערה או תיעוד שיחה…">' +
           '<button class="btn primary sm" data-addnote="' + c.id + '">הוספה</button></div>' +
-        '<ul class="timeline" style="margin-top:14px">' + (ca.length ? ca.map(tlItem).join('') : '<li class="muted">אין פעילות מתועדת</li>') + '</ul>' +
-      '</div>';
+        '<ul class="timeline" style="margin-top:16px">' +
+          (ca.length ? ca.map(tlItem).join('') : '<li class="muted">אין פעילות מתועדת</li>') + '</ul>');
+
+    $('#drawer').innerHTML =
+      '<div class="drawer-head">' + avatar(c.name) +
+        '<div style="min-width:0"><h2>' + esc(c.name) +
+          '<button class="star ' + (isVip ? 'on' : '') + '" data-vip="' + c.id + '" title="סימון כלקוח VIP">★</button></h2>' +
+          '<p class="muted">' + esc(c.company) + ' · ' + esc(c.industry) + '</p>' +
+          '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + statusPill(c.status) +
+          (c.tags || []).map(t => '<span class="pill brand">' + esc(t) + '</span>').join('') + '</div></div>' +
+        '<button class="icon-btn close" data-close>✕</button></div>' +
+      '<div class="drawer-body">' + tiles + actions + tabs +
+        paneOverview + paneDeals + paneTasks + paneActivity + '</div>';
 
     $('#drawer').hidden = false;
     $('#overlay').hidden = false;
   }
+
+  function tile(label, val, cls) {
+    return '<div class="tile ' + (cls || '') + '"><div class="l">' + label + '</div><div class="v">' + val + '</div></div>';
+  }
+  function tabBtn(id, label, n) {
+    return '<button data-tab="' + id + '" class="' + (drawerTab === id ? 'active' : '') + '">' + label +
+      (n !== null && n !== undefined ? '<span class="n">' + n + '</span>' : '') + '</button>';
+  }
+  function pane(id, html) {
+    return '<div class="tab-pane ' + (drawerTab === id ? 'active' : '') + '" data-pane="' + id + '">' + html + '</div>';
+  }
   function closeDrawer() { $('#drawer').hidden = true; $('#overlay').hidden = true; drawerId = null; }
   function refreshDrawer() { if (drawerId && customerById(drawerId)) openCustomer(drawerId); }
+
+  /* --- פעולות מהירות בכרטיס --- */
+  function copyContact(c) {
+    const txt = [c.name, c.company, c.phone, c.email, c.city, c.industry].filter(Boolean).join('\n');
+    const done = () => toast('פרטי הקשר הועתקו');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, () => fallbackCopy(txt, done));
+    } else fallbackCopy(txt, done);
+  }
+  function fallbackCopy(txt, cb) {
+    const ta = document.createElement('textarea');
+    ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); cb(); } catch (e) { toast('ההעתקה נכשלה'); }
+    document.body.removeChild(ta);
+  }
+
+  function printCustomer(c) {
+    const cd = state.deals.filter(d => d.customerId === c.id);
+    const ca = state.activities.filter(a => a.customerId === c.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
+    const html =
+      '<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>כרטיס לקוח — ' + esc(c.name) + '</title>' +
+      '<style>body{font-family:Segoe UI,Arial,sans-serif;padding:32px;color:#141b2d}' +
+      'h1{margin:0 0 4px}h2{margin:24px 0 8px;font-size:15px;border-bottom:1px solid #ddd;padding-bottom:4px}' +
+      'table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #eee;text-align:right}' +
+      'dl{display:grid;grid-template-columns:130px 1fr;gap:6px;font-size:13px}dt{color:#6b7590}dd{margin:0;font-weight:600}' +
+      '.hd{color:#6b7590;font-size:12px}</style></head><body>' +
+      '<div class="hd">' + esc(state.settings.biz) + ' · כרטיס לקוח · הופק ' + fdate(dayOffset(0)) + '</div>' +
+      '<h1>' + esc(c.name) + '</h1><div class="hd">' + esc(c.company) + ' · ' + esc(c.status) + '</div>' +
+      '<h2>פרטים</h2><dl>' +
+        '<dt>טלפון</dt><dd>' + esc(c.phone) + '</dd><dt>אימייל</dt><dd>' + esc(c.email) + '</dd>' +
+        '<dt>עיר</dt><dd>' + esc(c.city) + '</dd><dt>תחום</dt><dd>' + esc(c.industry) + '</dd>' +
+        '<dt>מקור הליד</dt><dd>' + esc(c.source) + '</dd><dt>אחראי</dt><dd>' + esc(c.owner) + '</dd>' +
+        '<dt>היקף עסקי</dt><dd>' + money(c.value) + '</dd><dt>לקוח מאז</dt><dd>' + fdate(c.created) + '</dd>' +
+      '</dl>' +
+      '<h2>עסקאות (' + cd.length + ')</h2>' +
+      (cd.length ? '<table><tr><th>עסקה</th><th>שלב</th><th>סכום</th><th>סגירה</th></tr>' +
+        cd.map(d => '<tr><td>' + esc(d.title) + '</td><td>' + esc(stageById(d.stage).name) + '</td><td>' +
+          money(d.value) + '</td><td>' + fdate(d.close) + '</td></tr>').join('') + '</table>' : '<p>—</p>') +
+      '<h2>פעילות אחרונה</h2>' +
+      (ca.length ? '<table>' + ca.map(a => '<tr><td style="width:80px">' + fdate(a.date) + '</td><td style="width:60px">' +
+        esc(a.type) + '</td><td>' + esc(a.text) + '</td></tr>').join('') + '</table>' : '<p>—</p>') +
+      '</body></html>';
+
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;inset:0;width:0;height:0;border:0;opacity:0';
+    document.body.appendChild(fr);
+    fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
+    setTimeout(() => {
+      fr.contentWindow.focus(); fr.contentWindow.print();
+      setTimeout(() => document.body.removeChild(fr), 1000);
+    }, 250);
+  }
 
   /* ---------- צינור מכירות ---------- */
   function renderBoard() {
@@ -989,6 +1136,86 @@
       return toast('הלקוח נמחק');
     }
 
+    /* --- לשוניות ופעולות מהירות בכרטיס --- */
+    const tab = closest('[data-tab]');
+    if (tab) {
+      drawerTab = tab.dataset.tab;
+      $$('.tabs button').forEach(b => b.classList.toggle('active', b === tab));
+      $$('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === drawerTab));
+      return;
+    }
+    const vip = closest('[data-vip]');
+    if (vip) {
+      const c = customerById(vip.dataset.vip);
+      c.tags = c.tags || [];
+      const i = c.tags.indexOf('VIP');
+      if (i > -1) c.tags.splice(i, 1); else c.tags.unshift('VIP');
+      save(); refreshDrawer(); renderCustomers();
+      return toast(i > -1 ? 'הוסר סימון VIP' : 'הלקוח סומן כ־VIP');
+    }
+    const ql = closest('[data-quicklog]');
+    if (ql) {
+      const parts = ql.dataset.quicklog.split('|');
+      const type = parts[0], c = customerById(parts[1]);
+      const texts = { 'שיחה': 'שיחה יוצאת ללקוח.', 'פגישה': 'התקיימה פגישה עם הלקוח.', 'מייל': 'נשלח מייל ללקוח.' };
+      logActivity(c.id, type, texts[type] || type, state.settings.contact);
+      c.lastContact = dayOffset(0);
+      save(); refreshDrawer(); refreshAll();
+      return toast('תועד: ' + type);
+    }
+    const fu = closest('[data-followup]');
+    if (fu) {
+      const c = customerById(fu.dataset.followup);
+      state.tasks.unshift({
+        id: uid('t'), title: 'שיחת מעקב עם ' + c.name, customerId: c.id, type: 'שיחה',
+        priority: 'רגילה', due: dayOffset(1), done: false, owner: c.owner
+      });
+      save(); refreshDrawer(); refreshAll();
+      return toast('נקבעה תזכורת למחר');
+    }
+    const cp = closest('[data-copy]');
+    if (cp) return copyContact(customerById(cp.dataset.copy));
+    const pc = closest('[data-printcust]');
+    if (pc) return printCustomer(customerById(pc.dataset.printcust));
+    const dup = closest('[data-dup]');
+    if (dup) {
+      const src = customerById(dup.dataset.dup);
+      const copy = Object.assign({}, src, {
+        id: uid('c'), name: src.name + ' (עותק)', value: 0,
+        created: dayOffset(0), lastContact: dayOffset(0), tags: (src.tags || []).slice()
+      });
+      state.customers.unshift(copy);
+      logActivity(copy.id, 'ליד', 'הכרטיס שוכפל מתוך ' + src.company + '.', copy.owner);
+      save(); refreshAll(); openCustomer(copy.id);
+      return toast('הכרטיס שוכפל');
+    }
+    const na = closest('[data-newact]');
+    if (na) {
+      const cid = na.dataset.newact;
+      return modal('תיעוד פעילות', activityForm({ customerId: cid }), () => {
+        if (!saveActivity(null)) return false;
+        refreshAll(); refreshDrawer();
+      }, 'שמירה');
+    }
+    const at = closest('[data-addtag]');
+    if (at) {
+      const c = customerById(at.dataset.addtag);
+      const t = prompt('שם התגית:');
+      if (!t || !t.trim()) return;
+      c.tags = c.tags || [];
+      if (c.tags.indexOf(t.trim()) < 0) c.tags.push(t.trim());
+      save(); refreshDrawer(); renderCustomers();
+      return toast('התגית נוספה');
+    }
+    const rt = closest('[data-deltag]');
+    if (rt) {
+      const parts = rt.dataset.deltag.split('|');
+      const c = customerById(parts[1]);
+      c.tags = (c.tags || []).filter(x => x !== parts[0]);
+      save(); refreshDrawer(); renderCustomers();
+      return toast('התגית הוסרה');
+    }
+
     const an = closest('[data-addnote]');
     if (an) {
       const val = $('#noteInput').value.trim();
@@ -1137,6 +1364,22 @@
       const fn = RERENDER[e.target.id];
       if (fn) fn();
     });
+  });
+
+  /* עדכון מהיר של סטטוס / אחראי / מקור מתוך כרטיס הלקוח */
+  document.addEventListener('change', e => {
+    const el = e.target, d = el.dataset || {};
+    const id = d.qstatus || d.qowner || d.qsource;
+    if (!id) return;
+    const c = customerById(id);
+    if (!c) return;
+    const field = d.qstatus ? 'status' : d.qowner ? 'owner' : 'source';
+    const labels = { status: 'הסטטוס', owner: 'האחראי', source: 'מקור הליד' };
+    if (c[field] === el.value) return;
+    c[field] = el.value;
+    logActivity(c.id, 'הערה', labels[field] + ' עודכן ל״' + el.value + '״.', state.settings.contact);
+    save(); refreshDrawer(); refreshAll();
+    toast(labels[field] + ' עודכן');
   });
 
   $('#globalSearch').addEventListener('input', e => globalSearch(e.target.value));
