@@ -296,46 +296,41 @@
     const since = Math.abs(daysFrom(c.lastContact));
     const isVip = (c.tags || []).indexOf('VIP') > -1;
 
-    /* --- מדדים --- */
+    /* --- מדדים: רק מה שהלשוניות לא כבר מציגות --- */
     const tiles =
       '<div class="tiles">' +
-        tile('תיעודים', String(ca.length), ca.length ? 'ok' : 'warn') +
         tile('קשר אחרון', since === 0 ? 'היום' : 'לפני ' + since + ' ימים', since > 60 ? 'danger' : since > 30 ? 'warn' : 'ok') +
         tile('היקף עסקי', money(c.value), '') +
-        tile('בצנרת', openD.length + ' · ' + moneyShort(pipeSum), '') +
-        tile('משימות פתוחות', openT.length + (lateT.length ? ' (' + lateT.length + ' באיחור)' : ''), lateT.length ? 'danger' : '') +
+        tile('שווי בצנרת', openD.length ? moneyShort(pipeSum) : '—', '') +
       '</div>';
 
-    /* --- פעולות --- */
+    /* --- פעולות: שורה אחת, המשניות בתפריט --- */
     const actions =
       '<div class="act-group">' +
         '<button class="btn primary sm" data-edit="' + c.id + '">✎ עריכת כרטיס</button>' +
         '<button class="btn ghost sm" data-newdeal="' + c.id + '">+ עסקה</button>' +
         '<button class="btn ghost sm" data-newtask="' + c.id + '">+ משימה</button>' +
-        '<button class="btn ghost sm" data-newact="' + c.id + '">+ תיעוד פעילות</button>' +
         '<span class="sep"></span>' +
         (c.phone ? '<a class="btn ghost sm" href="tel:' + esc(c.phone) + '">☎ חיוג</a>' : '') +
-        (c.phone ? '<a class="btn ghost sm" href="https://wa.me/' + waPhone(c.phone) + '" target="_blank" rel="noopener">וואטסאפ</a>' : '') +
+        (c.phone ? '<a class="btn ghost sm" href="https://wa.me/' + waPhone(c.phone) + '" target="_blank" rel="noopener">⌘ וואטסאפ</a>' : '') +
         (c.email ? '<a class="btn ghost sm" href="mailto:' + esc(c.email) + '">✉ מייל</a>' : '') +
-        '<button class="btn ghost sm" data-copy="' + c.id + '">⧉ העתקת פרטים</button>' +
         '<span class="sep"></span>' +
-        '<button class="btn ghost sm" data-dup="' + c.id + '">שכפול</button>' +
-        '<button class="btn ghost sm" data-printcust="' + c.id + '">הדפסת כרטיס</button>' +
-        '<button class="btn danger sm" data-del="' + c.id + '">מחיקה</button>' +
-      '</div>' +
-
-      '<div class="act-group">' +
-        '<span class="act-label">תיעוד מהיר:</span>' +
-        LOG_TYPES.map(t => '<button class="btn ghost sm" data-startlog="' + esc(t) + '">' +
-          (ACT_ICONS[t] || '') + ' ' + esc(t) + '</button>').join('') +
-        '<button class="btn ghost sm" data-followup="' + c.id + '">⏰ תזכורת למחר</button>' +
+        '<span class="menu-wrap">' +
+          '<button class="btn ghost sm" data-menu>עוד ▾</button>' +
+          '<div class="menu" hidden>' +
+            '<button data-copy="' + c.id + '">העתקת פרטי קשר</button>' +
+            '<button data-dup="' + c.id + '">שכפול כרטיס</button>' +
+            '<button data-printcust="' + c.id + '">הדפסת כרטיס</button>' +
+            '<div class="div"></div>' +
+            '<button class="danger" data-del="' + c.id + '">מחיקת לקוח</button>' +
+          '</div>' +
+        '</span>' +
       '</div>' +
 
       '<div class="quick-selects">' +
         '<label>סטטוס<select class="input" data-qstatus="' + c.id + '">' +
           opts(['לקוח פוטנציאלי', 'בטיפול', 'לקוח פעיל', 'לא פעיל'], c.status) + '</select></label>' +
         '<label>אחראי<select class="input" data-qowner="' + c.id + '">' + opts(ownerNames(), c.owner) + '</select></label>' +
-        '<label>מקור הליד<select class="input" data-qsource="' + c.id + '">' + opts(SOURCES, c.source) + '</select></label>' +
       '</div>';
 
     /* --- לשוניות --- */
@@ -712,16 +707,6 @@
         '<ul class="timeline">' + items.map(a => tlItem(a, false)).join('') + '</ul>';
     });
     return html;
-  }
-
-  /* מעבר ללשונית התיעודים עם מיקוד בטופס */
-  function openLogTab() {
-    drawerTab = 'activity';
-    $$('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'activity'));
-    $$('.tab-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === 'activity'));
-    $$('.type-chip').forEach(b => b.classList.toggle('on', b.dataset.logtype === logType));
-    const ta = $('#logText');
-    if (ta) { ta.focus(); ta.scrollIntoView({ block: 'nearest' }); }
   }
 
   function refreshLogList() {
@@ -1236,6 +1221,15 @@
     if (t.tagName === 'A' && t.href) return; // קישורי טלפון/מייל
     const closest = s => t.closest(s);
 
+    /* תפריט "עוד" — נסגר בכל לחיצה מחוצה לו */
+    const mBtn = closest('[data-menu]');
+    $$('.menu').forEach(m => { if (!mBtn || m !== mBtn.parentNode.querySelector('.menu')) m.hidden = true; });
+    if (mBtn) {
+      const m = mBtn.parentNode.querySelector('.menu');
+      m.hidden = !m.hidden;
+      return;
+    }
+
     const nav = closest('.nav-item');
     if (nav) return go(nav.dataset.view);
     const goto = closest('[data-goto]');
@@ -1338,12 +1332,6 @@
       return toast(i > -1 ? 'הוסר סימון VIP' : 'הלקוח סומן כ־VIP');
     }
     /* --- תיעודים --- */
-    const sl = closest('[data-startlog]');
-    if (sl) {
-      logType = sl.dataset.startlog;
-      openLogTab();
-      return;
-    }
     const lt = closest('[data-logtype]');
     if (lt) {
       logType = lt.dataset.logtype;
@@ -1364,16 +1352,6 @@
     if (xl) return exportLog(xl.dataset.exportlog);
     const pl = closest('[data-printlog]');
     if (pl) return printLog(pl.dataset.printlog);
-    const fu = closest('[data-followup]');
-    if (fu) {
-      const c = customerById(fu.dataset.followup);
-      state.tasks.unshift({
-        id: uid('t'), title: 'שיחת מעקב עם ' + c.name, customerId: c.id, type: 'שיחה',
-        priority: 'רגילה', due: dayOffset(1), done: false, owner: c.owner
-      });
-      save(); refreshDrawer(); refreshAll();
-      return toast('נקבעה תזכורת למחר');
-    }
     const cp = closest('[data-copy]');
     if (cp) return copyContact(customerById(cp.dataset.copy));
     const pc = closest('[data-printcust]');
@@ -1389,14 +1367,6 @@
       logActivity(copy.id, 'ליד', 'הכרטיס שוכפל מתוך ' + src.company + '.', copy.owner);
       save(); refreshAll(); openCustomer(copy.id);
       return toast('הכרטיס שוכפל');
-    }
-    const na = closest('[data-newact]');
-    if (na) {
-      const cid = na.dataset.newact;
-      return modal('תיעוד פעילות', activityForm({ customerId: cid }), () => {
-        if (!saveActivity(null)) return false;
-        refreshAll(); refreshDrawer();
-      }, 'שמירה');
     }
     const at = closest('[data-addtag]');
     if (at) {
