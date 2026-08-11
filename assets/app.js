@@ -1466,6 +1466,7 @@
       return toast('הגיבוי הורד');
     }
     if (t.id === 'backupImport') return pickFile('backup', '.json');
+    if (t.id === 'logoutBtn') return logout();
     if (t.id === 'menuBtn') return $('#sidebar').classList.toggle('open');
     if (t.id === 'themeBtn') {
       const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -1562,6 +1563,58 @@
     }
   });
 
+  /* ---------- כניסה למערכת ----------
+     מסך קוסמטי להדגמה בלבד: הבדיקה רצה בדפדפן והפרטים גלויים בקוד המקור.
+     אין כאן הגנה אמיתית — אין להסתמך עליו כדי להסתיר מידע רגיש. */
+  const AUTH_KEY = 'activecrm.session';
+
+  function isAuthed() {
+    return localStorage.getItem(AUTH_KEY) === '1' || sessionStorage.getItem(AUTH_KEY) === '1';
+  }
+  function showLogin() {
+    $('#login').hidden = false;
+    document.documentElement.style.overflow = 'hidden';   /* מונע פס גלילה של האפליקציה מאחור */
+    $('#loginErr').hidden = true;
+    $('#loginUser').value = '';
+    $('#loginPass').value = '';
+    setTimeout(() => $('#loginUser').focus(), 60);
+  }
+  function enterApp() {
+    $('#login').hidden = true;
+    document.documentElement.style.overflow = '';
+    applyBranding();
+    refreshSelects();
+    refreshBadges();
+    go('dashboard');
+  }
+  function logout() {
+    localStorage.removeItem(AUTH_KEY);
+    sessionStorage.removeItem(AUTH_KEY);
+    showLogin();
+    toast('התנתקת מהמערכת');
+  }
+
+  $('#loginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const u = $('#loginUser').value.trim();
+    const p = $('#loginPass').value;
+    if (u.toLowerCase() === DEMO_AUTH.user && p === DEMO_AUTH.pass) {
+      ($('#loginRemember').checked ? localStorage : sessionStorage).setItem(AUTH_KEY, '1');
+      enterApp();
+      toast('ברוך הבא ל־' + (state.settings.biz || 'ActiveCRM'));
+    } else {
+      const err = $('#loginErr');
+      err.textContent = u || p ? 'שם המשתמש או הסיסמה שגויים' : 'נא למלא שם משתמש וסיסמה';
+      err.hidden = false;
+      const card = $('#loginForm');
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+      $('#loginPass').value = '';
+      $('#loginPass').focus();
+    }
+  });
+
   /* ---------- אתחול ---------- */
   const savedTheme = localStorage.getItem('activecrm.theme');
   if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1569,4 +1622,5 @@
   refreshSelects();
   refreshBadges();
   renderDashboard();
+  if (isAuthed()) { $('#login').hidden = true; } else { showLogin(); }
 })();

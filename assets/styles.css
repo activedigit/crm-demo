@@ -57,6 +57,35 @@ button,input,select,textarea{font:inherit;color:inherit}
 .muted{color:var(--muted)}
 .small{font-size:.86rem}
 
+/* ===== מסך כניסה ===== */
+.login{
+  position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:20px;
+  background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  overflow-y:auto;
+}
+html[data-theme="dark"] .login{background:linear-gradient(135deg,#1e1b4b 0%,#312e81 55%,#4c1d95 100%)}
+.login-card{
+  background:var(--surface);border-radius:18px;padding:30px 30px 26px;
+  width:min(400px,100%);box-shadow:0 30px 80px -20px rgba(0,0,0,.55);
+}
+.login-brand{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:20px}
+.brand-mark.lg{width:56px;height:56px;border-radius:16px;font-size:1.6rem}
+.login-card h1{font-size:1.35rem}
+.login-card .sub{color:var(--muted);font-size:.87rem;text-align:center}
+.login-field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.login-field .input{font-weight:500;color:var(--text);padding:10px 12px}
+.login-err{
+  background:var(--danger-soft);color:var(--danger);
+  padding:9px 13px;border-radius:10px;font-size:.85rem;font-weight:600;margin-bottom:13px;
+}
+.login-hint{
+  background:var(--brand-soft);color:var(--brand);border-radius:10px;
+  padding:10px 12px;font-size:.81rem;margin-top:16px;text-align:center;line-height:1.7;
+}
+.btn.block{width:100%;padding:11px;font-size:.95rem}
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translateX(-7px)}60%{transform:translateX(7px)}100%{transform:none}}
+
 /* ===== Layout ===== */
 .app{display:flex;min-height:100vh}
 

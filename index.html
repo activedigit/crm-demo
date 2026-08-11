@@ -4,10 +4,39 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ActiveCRM — מערכת ניהול לקוחות</title>
-<link rel="stylesheet" href="assets/styles.css?v=4">
+<link rel="stylesheet" href="assets/styles.css?v=5">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 </head>
 <body>
+
+<!-- ===== מסך כניסה (הדגמה בלבד) ===== -->
+<div class="login" id="login">
+  <form class="login-card" id="loginForm" autocomplete="off">
+    <div class="login-brand">
+      <div class="brand-mark lg">A</div>
+      <h1>ActiveCRM</h1>
+      <p class="sub">מערכת ניהול לקוחות — כניסה למערכת</p>
+    </div>
+
+    <div class="login-err" id="loginErr" hidden></div>
+
+    <label class="login-field">שם משתמש
+      <input class="input" id="loginUser" type="text" placeholder="demo" autocomplete="username">
+    </label>
+    <label class="login-field">סיסמה
+      <input class="input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password">
+    </label>
+    <label class="chk" style="margin-bottom:16px">
+      <input type="checkbox" id="loginRemember" checked> השאר אותי מחובר
+    </label>
+
+    <button class="btn primary block" type="submit">כניסה</button>
+
+    <div class="login-hint">
+      גרסת הדגמה · שם משתמש <b>demo</b> · סיסמה <b>demo123</b>
+    </div>
+  </form>
+</div>
 
 <div class="app">
 
@@ -39,6 +68,7 @@
           <span>מנהלת מכירות</span>
         </div>
       </div>
+      <button class="btn ghost sm" id="logoutBtn" style="width:100%;margin-top:8px">יציאה מהמערכת</button>
       <p class="demo-note">גרסת הדגמה — הנתונים לדוגמה בלבד</p>
     </div>
   </aside>
@@ -328,7 +358,7 @@
 <div class="toast" id="toast" hidden></div>
 <input type="file" id="filePicker" accept=".csv,.json" hidden>
 
-<script src="assets/data.js?v=4"></script>
-<script src="assets/app.js?v=4"></script>
+<script src="assets/data.js?v=5"></script>
+<script src="assets/app.js?v=5"></script>
 </body>
 </html>
