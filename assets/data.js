@@ -129,6 +129,6 @@ function buildDemoData() {
 
   return {
     customers, deals, tasks, activities, revenue, owners,
-    settings: { biz: 'אקטיב דיגיט בע״מ', currency: '₪', contact: 'דנה אברמוב', email: 'sales@example.co.il' }
+    settings: { biz: 'DEMO', currency: '₪', contact: 'דנה אברמוב', email: 'sales@example.co.il' }
   };
 }

@@ -24,6 +24,8 @@
     s.revenue = s.revenue || new Array(12).fill(0);
     s.settings = s.settings || { biz: 'העסק שלי', currency: '₪', contact: '', email: '' };
     if (!s.owners || !s.owners.length) s.owners = OWNERS.map(o => Object.assign({}, o));
+    /* שם העסק לשעבר הוחלף ב-DEMO — מעדכנים גם מי שכבר שמר אותו בדפדפן */
+    if (s.settings.biz === 'אקטיב דיגיט בע״מ') s.settings.biz = 'DEMO';
     // עסקאות שנסגרו בהצלחה כבר משוקללות בהיקף העסקי של הלקוח
     s.deals.forEach(d => { if (d.counted === undefined) d.counted = (d.stage === 'won'); });
     return s;
