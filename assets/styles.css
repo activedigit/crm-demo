@@ -87,7 +87,9 @@ html[data-theme="dark"] .login{background:linear-gradient(135deg,#1e1b4b 0%,#312
 @keyframes shake{20%{transform:translateX(-7px)}60%{transform:translateX(7px)}100%{transform:none}}
 
 /* ===== Layout ===== */
-.app{display:flex;min-height:100vh}
+.app{display:flex;min-height:100vh;min-height:100dvh}
+.nav-backdrop{position:fixed;inset:0;background:rgba(12,16,28,.5);z-index:88}
+.on-mobile{display:none}
 
 .sidebar{
   width:250px;flex:0 0 250px;
@@ -95,7 +97,7 @@ html[data-theme="dark"] .login{background:linear-gradient(135deg,#1e1b4b 0%,#312
   border-inline-start:1px solid var(--border);
   display:flex;flex-direction:column;
   padding:18px 14px;
-  position:sticky;top:0;height:100vh;
+  position:sticky;top:0;height:100vh;height:100dvh;
 }
 .brand{display:flex;gap:11px;align-items:center;padding:6px 8px 18px}
 .brand-mark{
@@ -601,7 +603,7 @@ textarea.input{resize:vertical;min-height:70px}
 @media (max-width:860px){
   .sidebar{
     position:fixed;inset-block:0;inset-inline-end:0;z-index:90;
-    transform:translateX(100%);transition:.25s;
+    transform:translateX(100%);transition:.25s;width:280px;flex-basis:280px;
   }
   .sidebar.open{transform:none}
   .only-mobile{display:block}
@@ -609,4 +611,86 @@ textarea.input{resize:vertical;min-height:70px}
   .topbar{padding:10px 14px}
   .bars .row .nm{width:120px;flex-basis:120px}
   .form-grid{grid-template-columns:1fr}
+}
+
+/* ===== התאמות נייד ===== */
+@media (max-width:760px){
+  .on-mobile{display:inline}
+  .on-desktop{display:none}
+
+  /* מונע זום אוטומטי ב-iOS בעת מיקוד בשדה */
+  .input,input,select,textarea,.search-wrap input{font-size:16px}
+
+  /* פקדים שהיו תלויי ריחוף — בלעדיהם אי אפשר לערוך במגע */
+  .tl-actions .icon-btn,.deal .del{opacity:.75}
+
+  /* יעדי נגיעה */
+  .icon-btn{min-width:40px;min-height:40px}
+  .btn{padding:9px 14px}
+  .btn.sm{padding:7px 12px}
+  .task-list .cb{width:22px;height:22px;flex-basis:22px}
+  .nav-item{padding:12px 12px}
+
+  /* טבלאות הופכות לכרטיסים — במקום גלילה אופקית */
+  .table thead{display:none}
+  .table,.table tbody,.table tr,.table td{display:block;width:100%}
+  .table tr{
+    border:1px solid var(--border);border-radius:12px;
+    margin:0 10px 10px;padding:11px 13px;background:var(--surface);
+  }
+  .table tbody tr:hover{background:var(--surface)}
+  .table td{
+    border:0;padding:5px 0;display:flex;gap:10px;align-items:center;
+    justify-content:space-between;text-align:end;
+  }
+  .table td::before{
+    content:attr(data-l);color:var(--muted);font-size:.76rem;font-weight:700;
+    text-align:start;flex:0 0 88px;
+  }
+  .table td[data-l=""]{border-bottom:1px solid var(--border);padding-bottom:9px;margin-bottom:4px}
+  .table td[data-l=""]::before{display:none}
+  .table td .cell-name{text-align:start}
+  .table td.empty{display:block;text-align:center}
+  .table td.empty::before{display:none}
+  .card.no-pad .table-wrap{padding:10px 0 1px}
+
+  /* צינור המכירות — עמודות זו מתחת לזו במקום גלילה אופקית */
+  .board{grid-template-columns:1fr;gap:10px}
+  .col-stage{min-height:0}
+  .deal{cursor:pointer}
+
+  /* מסננים ברוחב מלא */
+  .toolbar{gap:8px}
+  .toolbar .input,.toolbar #custSearch{width:100%;min-width:0;flex:1 1 100%}
+  .count{margin-inline-start:0;width:100%}
+  .segmented{width:100%;overflow-x:auto}
+  .segmented button{flex:1;white-space:nowrap}
+  .head-actions{margin-inline-start:0;width:100%}
+  .head-actions .btn,.head-actions .input{flex:1}
+  .page-head h1{font-size:1.35rem}
+
+  /* מדדים וגרפים */
+  .kpi .val{font-size:1.35rem}
+  .kpi{padding:13px 15px}
+  .chart{gap:4px;height:180px}
+  .chart .lb{font-size:.62rem}
+  .chart .bar span{font-size:.62rem}
+
+  /* מגירת הלקוח ברוחב מלא */
+  .drawer{width:100vw}
+  .quick-selects .input{min-width:0}
+  .quick-selects label{flex:1}
+
+  /* מודאל */
+  .modal{max-height:92dvh}
+  .modal-foot .btn{flex:1}
+
+  .log-toolbar .input{flex:1 1 100%;min-width:0}
+  .log-toolbar .btn{flex:1}
+}
+
+@media (max-width:400px){
+  .tiles{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr}
+  .table td::before{flex-basis:76px;font-size:.72rem}
 }

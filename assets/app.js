@@ -119,10 +119,16 @@
   }
 
   /* ---------- ניווט ---------- */
+  /* תפריט צד בנייד: נפתח מעל האפליקציה עם רקע כהה שסוגר בהקשה */
+  function toggleNav(force) {
+    const open = force === undefined ? !$('#sidebar').classList.contains('open') : force;
+    $('#sidebar').classList.toggle('open', open);
+    $('#navBackdrop').hidden = !open;
+  }
   function go(view) {
     $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === view));
     $$('.view').forEach(v => v.classList.toggle('active', v.dataset.view === view));
-    $('#sidebar').classList.remove('open');
+    toggleNav(false);
     window.scrollTo({ top: 0 });
     renderView(view);
   }
@@ -190,10 +196,10 @@
       '<thead><tr><th>עסקה</th><th>לקוח</th><th>שלב</th><th>סכום</th></tr></thead><tbody>' +
       (top.length ? top.map(d => {
         const c = customerById(d.customerId), st = stageById(d.stage);
-        return '<tr data-deal="' + d.id + '"><td><strong>' + esc(d.title) + '</strong></td>' +
-          '<td class="muted">' + esc(c ? c.company : '—') + '</td>' +
-          '<td><span class="pill" style="background:' + st.color + '22;color:' + st.color + '">' + esc(st.name) + '</span></td>' +
-          '<td class="num">' + money(d.value) + '</td></tr>';
+        return '<tr data-deal="' + d.id + '"><td data-l=""><strong>' + esc(d.title) + '</strong></td>' +
+          '<td data-l="לקוח" class="muted">' + esc(c ? c.company : '—') + '</td>' +
+          '<td data-l="שלב"><span class="pill" style="background:' + st.color + '22;color:' + st.color + '">' + esc(st.name) + '</span></td>' +
+          '<td data-l="סכום" class="num">' + money(d.value) + '</td></tr>';
       }).join('') : '<tr><td colspan="4" class="empty">אין עסקאות פתוחות</td></tr>') + '</tbody>';
 
     const soon = openTasks().slice().sort((a, b) => a.due.localeCompare(b.due)).slice(0, 6);
@@ -254,16 +260,17 @@
     const rows = list.map(c => {
       const dealsCount = state.deals.filter(d => d.customerId === c.id && CLOSED.indexOf(d.stage) < 0).length;
       const late = daysFrom(c.lastContact) < -60;
+      /* data-l מספק את תווית העמודה כשהטבלה הופכת לכרטיסים בנייד */
       return '<tr data-id="' + c.id + '">' +
-        '<td><div class="cell-name">' + avatar(c.name) +
+        '<td data-l=""><div class="cell-name">' + avatar(c.name) +
           '<div><strong>' + esc(c.name) + '</strong><small>' + esc(c.company) + '</small></div></div></td>' +
-        '<td>' + statusPill(c.status) + '</td>' +
-        '<td class="muted">' + esc(c.industry) + '<br><small>' + esc(c.city) + '</small></td>' +
-        '<td class="muted"><div>' + esc(c.phone) + '</div><small>' + esc(c.email) + '</small></td>' +
-        '<td><div class="cell-name">' + avatar(c.owner, 'sm') + '<span class="muted">' + esc(c.owner) + '</span></div></td>' +
-        '<td class="num">' + (c.value ? money(c.value) : '<span class="muted">—</span>') + '</td>' +
-        '<td>' + (dealsCount ? '<span class="pill brand">' + dealsCount + ' פתוחות</span>' : '<span class="muted">—</span>') + '</td>' +
-        '<td class="muted"><span class="' + (late ? 'pill danger' : '') + '">' + fdate(c.lastContact) + '</span></td>' +
+        '<td data-l="סטטוס">' + statusPill(c.status) + '</td>' +
+        '<td data-l="תחום / עיר" class="muted">' + esc(c.industry) + '<br><small>' + esc(c.city) + '</small></td>' +
+        '<td data-l="פרטי קשר" class="muted"><div>' + esc(c.phone) + '</div><small>' + esc(c.email) + '</small></td>' +
+        '<td data-l="אחראי"><div class="cell-name">' + avatar(c.owner, 'sm') + '<span class="muted">' + esc(c.owner) + '</span></div></td>' +
+        '<td data-l="היקף עסקי" class="num">' + (c.value ? money(c.value) : '<span class="muted">—</span>') + '</td>' +
+        '<td data-l="עסקאות">' + (dealsCount ? '<span class="pill brand">' + dealsCount + ' פתוחות</span>' : '<span class="muted">—</span>') + '</td>' +
+        '<td data-l="קשר אחרון" class="muted"><span class="' + (late ? 'pill danger' : '') + '">' + fdate(c.lastContact) + '</span></td>' +
         '</tr>';
     }).join('');
 
@@ -815,12 +822,12 @@
     const rows = ownerStats();
     $('#ownerTable').innerHTML =
       '<thead><tr><th>נציג</th><th>לקוחות</th><th>נסגרו</th><th>הכנסות</th><th>בצנרת</th><th>משימות</th><th>אחוז סגירה</th></tr></thead><tbody>' +
-      (rows.length ? rows.map(r => '<tr><td><div class="cell-name">' + avatar(r.o.name, 'sm') +
+      (rows.length ? rows.map(r => '<tr><td data-l=""><div class="cell-name">' + avatar(r.o.name, 'sm') +
         '<div><strong>' + esc(r.o.name) + '</strong><small>' + esc(r.o.role) + '</small></div></div></td>' +
-        '<td class="num">' + r.custs + '</td><td class="num">' + r.won + '</td>' +
-        '<td class="num">' + money(r.wonSum) + '</td><td class="num">' + money(r.openSum) + '</td>' +
-        '<td class="num">' + r.tasks + '</td>' +
-        '<td><span class="pill ' + (r.rate >= 60 ? 'ok' : r.rate >= 30 ? 'warn' : 'mute') + '">' + r.rate + '%</span></td></tr>').join('')
+        '<td data-l="לקוחות" class="num">' + r.custs + '</td><td data-l="נסגרו" class="num">' + r.won + '</td>' +
+        '<td data-l="הכנסות" class="num">' + money(r.wonSum) + '</td><td data-l="בצנרת" class="num">' + money(r.openSum) + '</td>' +
+        '<td data-l="משימות" class="num">' + r.tasks + '</td>' +
+        '<td data-l="אחוז סגירה"><span class="pill ' + (r.rate >= 60 ? 'ok' : r.rate >= 30 ? 'warn' : 'mute') + '">' + r.rate + '%</span></td></tr>').join('')
         : '<tr><td colspan="7" class="empty">אין נציגים</td></tr>') + '</tbody>';
 
     const counts = STAGES.filter(s => s.id !== 'lost').map(st => ({ st: st, n: state.deals.filter(d => d.stage === st.id).length }));
@@ -1469,7 +1476,8 @@
     }
     if (t.id === 'backupImport') return pickFile('backup', '.json');
     if (t.id === 'logoutBtn') return logout();
-    if (t.id === 'menuBtn') return $('#sidebar').classList.toggle('open');
+    if (t.id === 'menuBtn') return toggleNav();
+    if (t.id === 'navBackdrop') return toggleNav(false);
     if (t.id === 'themeBtn') {
       const dark = document.documentElement.getAttribute('data-theme') === 'dark';
       document.documentElement.setAttribute('data-theme', dark ? 'light' : 'dark');
@@ -1555,8 +1563,15 @@
       if (first) first.click();
     }
   });
+  /* טקסט חיפוש מקוצר במסכים צרים */
+  function fitSearchPlaceholder() {
+    $('#globalSearch').placeholder = window.innerWidth < 760
+      ? 'חיפוש…' : 'חיפוש לקוח, חברה, עסקה או משימה…';
+  }
+  window.addEventListener('resize', fitSearchPlaceholder);
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeModal(); closeDrawer(); $('#searchResults').hidden = true; }
+    if (e.key === 'Escape') { closeModal(); closeDrawer(); toggleNav(false); $('#searchResults').hidden = true; }
     if (e.key === 'Enter' && !$('#modalBackdrop').hidden && e.target.tagName === 'INPUT') {
       const b = $('[data-msave]'); if (b) b.click();
     }
@@ -1623,6 +1638,7 @@
   applyBranding();
   refreshSelects();
   refreshBadges();
+  fitSearchPlaceholder();
   renderDashboard();
   if (isAuthed()) { $('#login').hidden = true; } else { showLogin(); }
 })();

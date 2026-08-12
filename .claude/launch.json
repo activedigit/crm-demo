@@ -6,6 +6,18 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8123"],
       "port": 8123
+    },
+    {
+      "name": "college-demo",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8124", "--directory", "C:/Users/WIN11/Desktop/webs/COLLEGE"],
+      "port": 8124
+    },
+    {
+      "name": "college-bundle-check",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8125", "--directory", "C:/Users/WIN11/AppData/Local/Temp/claude/C--Users-WIN11-Desktop-webs-CRMTEST/ddb46ad0-beba-4b23-b601-d41ecf7a6783/scratchpad"],
+      "port": 8125
     }
   ]
 }

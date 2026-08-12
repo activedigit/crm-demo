@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ActiveCRM — מערכת ניהול לקוחות</title>
-<link rel="stylesheet" href="assets/styles.css?v=6">
+<link rel="stylesheet" href="assets/styles.css?v=7">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
 </head>
 <body>
@@ -39,6 +39,9 @@
 </div>
 
 <div class="app">
+
+  <!-- רקע כהה לסגירת התפריט בנייד -->
+  <div class="nav-backdrop" id="navBackdrop" hidden></div>
 
   <!-- ===== Sidebar ===== -->
   <aside class="sidebar" id="sidebar">
@@ -185,7 +188,11 @@
         <div class="page-head">
           <div>
             <h1>צינור מכירות</h1>
-            <p class="muted">גררו כרטיס בין העמודות כדי לעדכן שלב · לחיצה על כרטיס פותחת עריכה · <span id="pipeSummary"></span></p>
+            <p class="muted">
+              <span class="on-desktop">גררו כרטיס בין העמודות כדי לעדכן שלב · לחיצה על כרטיס פותחת עריכה</span>
+              <span class="on-mobile">הקישו על כרטיס כדי לערוך ולשנות שלב</span>
+              · <span id="pipeSummary"></span>
+            </p>
           </div>
           <div class="head-actions">
             <select class="input" id="pipeOwner"><option value="">כל אנשי המכירות</option></select>
@@ -358,7 +365,7 @@
 <div class="toast" id="toast" hidden></div>
 <input type="file" id="filePicker" accept=".csv,.json" hidden>
 
-<script src="assets/data.js?v=6"></script>
-<script src="assets/app.js?v=6"></script>
+<script src="assets/data.js?v=7"></script>
+<script src="assets/app.js?v=7"></script>
 </body>
 </html>
